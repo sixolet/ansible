@@ -130,7 +130,8 @@ typedef struct {
 	u8 toggle[8];
 	u8 rules[8];
 	u8 rule_dests[8];
-	u8 sync[8]; 		// if true, reset dest rule to count
+	u8 sync[8];		// if true, reset dest rule to count
+	u8 pass[8];
 	u8 rule_dest_targets[8];
 	u8 smin[8];
 	u8 smax[8];

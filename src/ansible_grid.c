@@ -3565,6 +3565,7 @@ void default_mp() {
 		m.rules[i1] = 1;
 		m.rule_dests[i1] = i1;
 		m.sync[i1] = (1<<i1);
+		m.pass[i1] = (1<<i1);
 		m.rule_dest_targets[i1] = 3;
 		m.smin[i1] = 0;
 		m.smax[i1] = 0;
@@ -3668,6 +3669,7 @@ void clock_mp(uint8_t phase) {
 
 		for(i=0;i<8;i++) {
 			if(pushed[i]) {
+			        // This handles what to do during the cycle after you push a button. 
 				for(int n=0;n<8;n++) {
 					if(m.sync[i] & (1<<n)) {
 						reset[n] = 1;
@@ -3769,6 +3771,7 @@ void clock_mp(uint8_t phase) {
 					position[i]--;
 
 					for(int n=0;n<8;n++) {
+						// TODO: handle PASS by iterating over what to reset
 						if(m.sync[i] & (1<<n)) {
 							reset[n] = 1;
 							// position[n] = m.count[n];
@@ -3789,12 +3792,43 @@ void clock_mp(uint8_t phase) {
 			else tick[i]--;
 		}
 
+		u8 reset_bits = 0;
 		for(i=0;i<8;i++) {
 			if(reset[i]) {
+				reset_bits |= (1<<i);
+			}
+		}
+		// Iterate to a fixed point on what to reset.
+		// Proof of termination: we only ever set reset bits we don't unset them.
+		// There are only 8 reset bits.
+		u8 old_reset_bits = 0;
+		while (old_reset_bits != reset_bits) {
+			old_reset_bits = reset_bits;
+			for (i=0;i<8;i++) {
+				// consider only things scheduled for reset
+				if (!(old_reset_bits & (1<<i))) continue;
+				// now row i has gotten a reset message
+				// allow through a reset on anything not active
+				if (position[i] <= 0) continue;
+				// ok, it's gotten a reset message and its active.
+				// pass a reset to anything listed for a pass.
+				reset_bits |= m.pass[i];
+			}
+		}
+		// The iterating to a fixed point told us what recieved a reset message.
+		// The only things that *actually* reset are the ones that were either quiescent
+		// or have their own pass bit set.
+		for (i=0;i<8;i++) {
+			if (position[i] > 0 && !(m.pass[i] & (1<<i))) {
+				reset_bits &= ~(1<<i);
+			}
+		}
+		for (i=0;i<8;i++) {
+			if (reset_bits & (1<<i)) {
 				position[i] = m.count[i];
 				tick[i] = m.speed[i];
-				reset[i] = 0;
 			}
+			reset[i] = 0;
 		}
 
 		for(i=0;i<8;i++)
@@ -4269,6 +4303,9 @@ void handler_MPGridKey(s32 data) {
 					m.trigger[edit_row] ^= 1<<y;
 					m.toggle[edit_row] &= ~(1<<y);
 				}
+				else if (x == 7) {
+					m.pass[edit_row] ^= (1<<y);
+				}
 				else if(x == 4) {
 					sound ^= 1;
 				}
@@ -4556,6 +4593,12 @@ void refresh_mp(void) {
 				monomeLedBuffer[i1*16 + 3] = L1;
 			else
 				monomeLedBuffer[i1*16 + 3] = L0;
+
+			if(m.pass[edit_row] & (1<<i1))
+				monomeLedBuffer[i1*16 + 7] = L1;
+			else
+				monomeLedBuffer[i1*16 + 7] = L0;
+
 		}
 
 		monomeLedBuffer[edit_row * 16] = L2;

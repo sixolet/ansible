@@ -846,6 +846,16 @@ json_docdef_t ansible_app_docdefs[] = {
 										}),
 									},
 									{
+										.name = "pass",
+										.read = json_read_buffer,
+										.write = json_write_buffer,
+										.state = &ansible_json_read_buffer_state,
+										.params = &((json_read_buffer_params_t) {
+											.dst_offset = offsetof(nvram_data_t, mp_state.m[0].pass),
+											.dst_size = sizeof_field(nvram_data_t, mp_state.m[0].pass),
+										}),
+									},
+									{
 										.name = "rule_dest_targets",
 										.read = json_read_buffer,
 										.write = json_write_buffer,

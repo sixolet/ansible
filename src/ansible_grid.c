@@ -3809,7 +3809,7 @@ void clock_mp(uint8_t phase) {
 				if (!(old_reset_bits & (1<<i))) continue;
 				// now row i has gotten a reset message
 				// allow through a reset on anything not active
-				if (position[i] <= 0) continue;
+				if (position[i] < 0) continue;
 				// ok, it's gotten a reset message and its active.
 				// pass a reset to anything listed for a pass.
 				reset_bits |= m.pass[i];
@@ -3819,7 +3819,7 @@ void clock_mp(uint8_t phase) {
 		// The only things that *actually* reset are the ones that were either quiescent
 		// or have their own pass bit set.
 		for (i=0;i<8;i++) {
-			if (position[i] > 0 && !(m.pass[i] & (1<<i))) {
+			if (position[i] >= 0 && !(m.pass[i] & (1<<i))) {
 				reset_bits &= ~(1<<i);
 			}
 		}
